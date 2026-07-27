@@ -100,10 +100,104 @@ function toggleDescription(descId, btnId) {
     }
 }
 
-async function incrementViews(id) {
+function renderSection(category, items) {
+    const featuredContainer = document.getElementById(`${category}-featured`);
+    const archiveContainer = document.getElementById(`${category}-archive`);
+    
+    featuredContainer.innerHTML = '';
+    archiveContainer.innerHTML = '';
+
+    const featured = items.slice(0, 3);
+    const archive = items.slice(3);
+
+    featured.forEach(item => {
+        const date = new Date(item.created_at).toLocaleDateString('ar-IQ');
+        const uniqueId = `desc-${item.id}`;
+        const btnId = `btn-${item.id}`;
+        const cardId = `card-${item.id}`;
+        
+        featuredContainer.innerHTML += `
+            <div id="${cardId}" data-id="${item.id}" class="news-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 flex flex-col">
+                <img src="${item.image_url}" alt="صورة الخبر" class="h-48 w-full object-cover">
+                <div class="p-4 flex flex-col flex-grow">
+                    <h3 class="font-bold text-lg mb-2 text-primary">${item.title}</h3>
+                    
+                    <div class="mb-4 flex-grow">
+                        <p id="${uniqueId}" class="text-gray-600 text-sm line-clamp-3 transition-all duration-300">${item.description}</p>
+                        <button id="${btnId}" onclick="toggleDescription('${uniqueId}', '${btnId}')" class="text-accent text-xs font-bold mt-1 hidden hover:underline focus:outline-none">عرض المزيد</button>
+                    </div>
+
+                    ${item.source_url ? `<a href="${item.source_url}" target="_blank" class="text-accent text-sm font-semibold mb-3 hover:underline"><i class="fa-solid fa-link ml-1"></i>المصدر</a>` : ''}
+                    
+                    <div class="flex justify-between items-center text-gray-400 text-xs border-t pt-3 mt-auto">
+                        <span><i class="fa-regular fa-clock ml-1"></i>${date}</span>
+                        <div class="space-x-3 space-x-reverse">
+                            <span class="hover:text-primary"><i class="fa-regular fa-eye ml-1"></i><span id="views-${item.id}">${item.views || 0}</span></span>
+                            <button onclick="incrementLikes(${item.id})" class="text-red-500 hover:opacity-80"><i class="fa-regular fa-heart ml-1"></i>${item.likes || 0}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    setTimeout(() => {
+        featured.forEach(item => {
+            const el = document.getElementById(`desc-${item.id}`);
+            const btn = document.getElementById(`btn-${item.id}`);
+            if (el && btn && el.scrollHeight > el.clientHeight) {
+                btn.classList.remove('hidden');
+            }
+        });
+        setupViewObserver();
+    }, 50);
+
+    if (archive.length === 0) {
+        archiveContainer.innerHTML = `<li class="text-gray-400">لا توجد عناصر أخرى في الأرشيف</li>`;
+    } else {
+        archive.forEach(item => {
+            archiveContainer.innerHTML += `
+                <li class="flex justify-between items-center border-b pb-1">
+                    <span class="font-medium text-gray-700">• ${item.title}</span>
+                    <span class="text-xs text-gray-400">${new Date(item.created_at).toLocaleDateString('ar-IQ')}</span>
+                </li>
+            `;
+        });
+    }
+}
+
+// مراقبة ظهور المنشور على شاشة المستخدم
+function setupViewObserver() {
+    const observer = new IntersectionObserver((entries, observerInstance) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const card = entry.target;
+                const id = card.getAttribute('data-id');
+                incrementViewsOnce(id);
+                observerInstance.unobserve(card); // تسجيل المشاهدة مرة واحدة فقط لكل ظهور في الجلسة
+            }
+        });
+    }, { threshold: 0.5 }); // يتم احتساب المشاهدة عندما يظهر نصف المنشور على الشاشة على الأقل
+
+    document.querySelectorAll('.news-card').forEach(card => {
+        observer.observe(card);
+    });
+}
+
+async function incrementViewsOnce(id) {
+    const viewedKey = `viewed_${id}`;
+    if (localStorage.getItem(viewedKey)) return;
+
     const { data } = await _supabase.from('news').select('views').eq('id', id).single();
-    await _supabase.from('news').update({ views: (data.views || 0) + 1 }).eq('id', id);
-    fetchNews();
+    if (data) {
+        const newViews = (data.views || 0) + 1;
+        const { error } = await _supabase.from('news').update({ views: newViews }).eq('id', id);
+        if (!error) {
+            localStorage.setItem(viewedKey, 'true');
+            const viewSpan = document.getElementById(`views-${id}`);
+            if (viewSpan) viewSpan.textContent = newViews;
+        }
+    }
 }
 
 async function incrementLikes(id) {
