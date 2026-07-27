@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة الأخبار</title>
+    <!-- Tailwind CSS للتنسيق السريع -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- مكتبة Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- أيقونات FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#064e3b', // أخضر غامق
+                        accent: '#047857'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+
+    <!-- رأس الصفحة -->
+    <header class="bg-primary text-white shadow-md">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold"><i class="fa-solid fa-globe ml-2"></i>الشبكة الإخبارية</h1>
+            <div id="auth-section">
+                <button onclick="toggleAuthModal()" class="bg-white text-primary px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition">
+                    <i class="fa-solid fa-user-lock ml-1"></i> تسجيل الدخول / لوحة التحكم
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="container mx-auto px-4 py-8 space-y-12">
+
+        <!-- قسم الأخبار المحلية -->
+        <section>
+            <div class="flex justify-between items-center border-b-2 border-primary pb-2 mb-6">
+                <h2 class="text-xl font-bold text-primary"><i class="fa-solid fa-location-dot ml-2"></i>أخبار محلية</h2>
+            </div>
+            <!-- أهم 3 منشورات -->
+            <div id="local-featured" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"></div>
+            <!-- الأرشيف (رؤوس أقلام) -->
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 class="text-sm font-bold text-gray-500 mb-3">أرشيف الأخبار المحلية</h3>
+                <ul id="local-archive" class="space-y-2 text-sm"></ul>
+            </div>
+        </section>
+
+        <!-- قسم الأخبار العالمية -->
+        <section>
+            <div class="flex justify-between items-center border-b-2 border-primary pb-2 mb-6">
+                <h2 class="text-xl font-bold text-primary"><i class="fa-solid fa-earth-americas ml-2"></i>أخبار عالمية</h2>
+            </div>
+            <!-- أهم 3 منشورات -->
+            <div id="global-featured" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"></div>
+            <!-- الأرشيف (رؤوس أقلام) -->
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 class="text-sm font-bold text-gray-500 mb-3">أرشيف الأخبار العالمية</h3>
+                <ul id="global-archive" class="space-y-2 text-sm"></ul>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- لوحة التحكم للإدارة (النشر، التعديل، الحذف) -->
+    <div id="admin-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-white w-full max-w-2xl rounded-xl shadow-lg p-6 overflow-y-auto max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-primary">لوحة التحكم والإدارة</h3>
+                <button onclick="toggleAuthModal()" class="text-gray-500 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <!-- نموذج تسجيل الدخول إذا لم يكن مسجلاً -->
+            <div id="login-form" class="space-y-4">
+                <input type="email" id="email" placeholder="البريد الإلكتروني" class="w-full p-2 border rounded">
+                <input type="password" id="password" placeholder="كلمة المرور" class="w-full p-2 border rounded">
+                <button onclick="login()" class="w-full bg-primary text-white py-2 rounded font-bold">دخول</button>
+            </div>
+
+            <!-- نموذج إضافة/تعديل خبر (يظهر بعد تسجيل الدخول) -->
+            <div id="dashboard-content" class="hidden space-y-4">
+                <form id="news-form" onsubmit="saveNews(event)" class="space-y-3 bg-gray-50 p-4 rounded border">
+                    <input type="hidden" id="news-id">
+                    <input type="text" id="news-title" placeholder="العنوان" required class="w-full p-2 border rounded">
+                    <textarea id="news-desc" placeholder="الشرح والتفاصيل" required class="w-full p-2 border rounded"></textarea>
+                    <input type="url" id="news-image" placeholder="رابط الصورة المباشر" required class="w-full p-2 border rounded">
+                    <input type="url" id="news-source" placeholder="رابط المصدر (اختياري)" class="w-full p-2 border rounded">
+                    <select id="news-category" class="w-full p-2 border rounded">
+                        <option value="local">محلية</option>
+                        <option value="global">عالمية</option>
+                    </select>
+                    <button type="submit" class="w-full bg-primary text-white py-2 rounded font-bold">حفظ الخبر</button>
+                </form>
+
+                <h4 class="font-bold mt-6 mb-2">إدارة الأخبار الحالية</h4>
+                <div id="admin-news-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                <button onclick="logout()" class="w-full bg-red-600 text-white py-2 rounded mt-4">تسجيل الخروج</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- كود الجافاسكريبت للربط مع Supabase وعرض البيانات -->
+    <script>
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchNews();
+            checkUser();
+        });
+
+        async function fetchNews() {
+            const { data, error } = await _supabase
+                .from('news')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching:', error);
+                return;
+            }
+
+            renderSection('local', data.filter(item => item.category === 'local'));
+            renderSection('global', data.filter(item => item.category === 'global'));
+            renderAdminList(data);
+        }
+
+        function renderSection(category, items) {
+            const featuredContainer = document.getElementById(`${category}-featured`);
+            const archiveContainer = document.getElementById(`${category}-archive`);
+            
+            featuredContainer.innerHTML = '';
+            archiveContainer.innerHTML = '';
+
+            const featured = items.slice(0, 3);
+            const archive = items.slice(3);
+
+            // عرض أول 3 منشورات ببطاقات كاملة
+            featured.forEach(item => {
+                const date = new Date(item.created_at).toLocaleDateString('ar-IQ');
+                featuredContainer.innerHTML += `
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 flex flex-col">
+                        <img src="${item.image_url}" alt="صورة الخبر" class="h-48 w-full object-cover">
+                        <div class="p-4 flex flex-col flex-grow">
+                            <h3 class="font-bold text-lg mb-2 text-primary">${item.title}</h3>
+                            <p class="text-gray-600 text-sm mb-4 flex-grow">${item.description}</p>
+                            ${item.source_url ? `<a href="${item.source_url}" target="_blank" class="text-accent text-sm font-semibold mb-3 hover:underline"><i class="fa-solid fa-link ml-1"></i>المصدر</a>` : ''}
+                            <div class="flex justify-between items-center text-gray-400 text-xs border-t pt-3 mt-auto">
+                                <span><i class="fa-regular fa-clock ml-1"></i>${date}</span>
+                                <div class="space-x-3 space-x-reverse">
+                                    <button onclick="incrementViews(${item.id})" class="hover:text-primary"><i class="fa-regular fa-eye ml-1"></i>${item.views || 0}</button>
+                                    <button onclick="incrementLikes(${item.id})" class="text-red-500 hover:opacity-80"><i class="fa-regular fa-heart ml-1"></i>${item.likes || 0}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // عرض الباقي كرؤوس أقلام (أرشيف)
+            if (archive.length === 0) {
+                archiveContainer.innerHTML = `<li class="text-gray-400">لا توجد عناصر أخرى في الأرشيف</li>`;
+            } else {
+                archive.forEach(item => {
+                    archiveContainer.innerHTML += `
+                        <li class="flex justify-between items-center border-b pb-1">
+                            <span class="font-medium text-gray-700">• ${item.title}</span>
+                            <span class="text-xs text-gray-400">${new Date(item.created_at).toLocaleDateString('ar-IQ')}</span>
+                        </li>
+                    `;
+                });
+            }
+        }
+
+        // تفاعلات اللايك والمشاهدات
+        async function incrementViews(id) {
+            // منطق بسيط لزيادة المشاهدات
+            const { data } = await _supabase.from('news').select('views').eq('id', id).single();
+            await _supabase.from('news').update({ views: (data.views || 0) + 1 }).eq('id', id);
+            fetchNews();
+        }
+
+        async function incrementLikes(id) {
+            const { data } = await _supabase.from('news').select('likes').eq('id', id).single();
+            await _supabase.from('news').update({ likes: (data.likes || 0) + 1 }).eq('id', id);
+            fetchNews();
+        }
+
+        // إدارة المصادقة ولوحة التحكم
+        function toggleAuthModal() {
+            const modal = document.getElementById('admin-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        async function checkUser() {
+            const { data: { session } } = await _supabase.auth.getSession();
+            if (session) {
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('dashboard-content').classList.remove('hidden');
+            } else {
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('dashboard-content').classList.add('hidden');
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { error } = await _supabase.auth.signInWithPassword({ email, password });
+            if (error) alert(error.message);
+            else checkUser();
+        }
+
+        async function logout() {
+            await _supabase.auth.signOut();
+            checkUser();
+        }
+
+        async function saveNews(e) {
+            e.preventDefault();
+            const id = document.getElementById('news-id').value;
+            const title = document.getElementById('news-title').value;
+            const description = document.getElementById('news-desc').value;
+            const image_url = document.getElementById('news-image').value;
+            const source_url = document.getElementById('news-source').value;
+            const category = document.getElementById('news-category').value;
+
+            const postData = { title, description, image_url, source_url, category };
+
+            let error;
+            if (id) {
+                // تعديل
+                const res = await _supabase.from('news').update(postData).eq('id', id);
+                error = res.error;
+            } else {
+                // إضافة جديد
+                const res = await _supabase.from('news').insert([postData]);
+                error = res.error;
+            }
+
+            if (error) {
+                alert('حدث خطأ: ' + error.message);
+            } else {
+                document.getElementById('news-form').reset();
+                document.getElementById('news-id').value = '';
+                fetchNews();
+                alert('تم الحفظ بنجاح');
+            }
+        }
+
+        function renderAdminList(items) {
+            const list = document.getElementById('admin-news-list');
+            list.innerHTML = '';
+            items.forEach(item => {
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-white p-2 rounded border text-sm">
+                        <span class="truncate max-w-[200px]">${item.title}</span>
+                        <div class="space-x-2 space-x-reverse">
+                            <button onclick="editNews(${item.id}, '${item.title}', '${item.description}', '${item.image_url}', '${item.source_url || ''}', '${item.category}')" class="text-blue-600">تعديل</button>
+                            <button onclick="deleteNews(${item.id})" class="text-red-600">حذف</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function editNews(id, title, desc, img, src, cat) {
+            document.getElementById('news-id').value = id;
+            document.getElementById('news-title').value = title;
+            document.getElementById('news-desc').value = desc;
+            document.getElementById('news-image').value = img;
+            document.getElementById('news-source').value = src;
+            document.getElementById('news-category').value = cat;
+        }
+
+        async function deleteNews(id) {
+            if (confirm('هل أنت متأكد من الحذف؟')) {
+                const { error } = await _supabase.from('news').delete().eq('id', id);
+                if (error) alert(error.message);
+                else fetchNews();
+            }
+        }
+    </script>
+</body>
+</html>
+
