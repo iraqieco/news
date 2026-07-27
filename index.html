@@ -113,7 +113,89 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtcXRvcHhhd3JyZ250Y3FxbnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3OTIxMzQsImV4cCI6MjA5ODM2ODEzNH0.HoExHY9oNFdryWUC2u2UELLPfBNhH3P4L3zS03dvELA';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMCo        function renderSection(category, items) {
+            const featuredContainer = document.getElementById(`${category}-featured`);
+            const archiveContainer = document.getElementById(`${category}-archive`);
+            
+            featuredContainer.innerHTML = '';
+            archiveContainer.innerHTML = '';
+
+            const featured = items.slice(0, 3);
+            const archive = items.slice(3);
+
+            featured.forEach(item => {
+                const date = new Date(item.created_at).toLocaleDateString('ar-IQ');
+                const uniqueId = `desc-${item.id}`;
+                const btnId = `btn-${item.id}`;
+                
+                featuredContainer.innerHTML += `
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 flex flex-col">
+                        <img src="${item.image_url}" alt="صورة الخبر" class="h-48 w-full object-cover">
+                        <div class="p-4 flex flex-col flex-grow">
+                            <h3 class="font-bold text-lg mb-2 text-primary">${item.title}</h3>
+                            
+                            <!-- الوصف مع خاصية التحكم بالارتفاع وزر العرض -->
+                            <div class="mb-4 flex-grow">
+                                <p id="${uniqueId}" class="text-gray-600 text-sm line-clamp-3 transition-all duration-300">${item.description}</p>
+                                <button id="${btnId}" onclick="toggleDescription('${uniqueId}', '${btnId}')" class="text-accent text-xs font-bold mt-1 hidden hover:underline focus:outline-none">عرض المزيد</button>
+                            </div>
+
+                            ${item.source_url ? `<a href="${item.source_url}" target="_blank" class="text-accent text-sm font-semibold mb-3 hover:underline"><i class="fa-solid fa-link ml-1"></i>المصدر</a>` : ''}
+                            
+                            <div class="flex justify-between items-center text-gray-400 text-xs border-t pt-3 mt-auto">
+                                <span><i class="fa-regular fa-clock ml-1"></i>${date}</span>
+                                <div class="space-x-3 space-x-reverse">
+                                    <button onclick="incrementViews(${item.id})" class="hover:text-primary"><i class="fa-regular fa-eye ml-1"></i>${item.views || 0}</button>
+                                    <button onclick="incrementLikes(${item.id})" class="text-red-500 hover:opacity-80"><i class="fa-regular fa-heart ml-1"></i>${item.likes || 0}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // التأكد من ظهور زر "عرض المزيد" فقط إذا تجاوز النص 3 أسطر فعلياً
+            setTimeout(() => {
+                featured.forEach(item => {
+                    const el = document.getElementById(`desc-${item.id}`);
+                    const btn = document.getElementById(`btn-${item.id}`);
+                    if (el && btn) {
+                        if (el.scrollHeight > el.clientHeight) {
+                            btn.classList.remove('hidden');
+                        }
+                    }
+                }, 50);
+            });
+
+            if (archive.length === 0) {
+                archiveContainer.innerHTML = `<li class="text-gray-400">لا توجد عناصر أخرى في الأرشيف</li>`;
+            } else {
+                archive.forEach(item => {
+                    archiveContainer.innerHTML += `
+                        <li class="flex justify-between items-center border-b pb-1">
+                            <span class="font-medium text-gray-700">• ${item.title}</span>
+                            <span class="text-xs text-gray-400">${new Date(item.created_at).toLocaleDateString('ar-IQ')}</span>
+                        </li>
+                    `;
+                });
+            }
+        }
+
+        // دالة تبديل حالة النص عند الضغط على زر عرض المزيد/إخفاء
+        function toggleDescription(descId, btnId) {
+            const descEl = document.getElementById(descId);
+            const btnEl = document.getElementById(btnId);
+            
+            if (descEl.classList.contains('line-clamp-3')) {
+                descEl.classList.remove('line-clamp-3');
+                btnEl.textContent = 'إخفاء التفاصيل';
+            } else {
+                descEl.classList.add('line-clamp-3');
+                btnEl.textContent = 'عرض المزيد';
+            }
+        }
+
+        ntentLoaded', () => {
             fetchNews();
             checkUser();
         });
@@ -134,52 +216,7 @@
             renderAdminList(data);
         }
 
-        function renderSection(category, items) {
-            const featuredContainer = document.getElementById(`${category}-featured`);
-            const archiveContainer = document.getElementById(`${category}-archive`);
-            
-            featuredContainer.innerHTML = '';
-            archiveContainer.innerHTML = '';
-
-            const featured = items.slice(0, 3);
-            const archive = items.slice(3);
-
-            // عرض أول 3 منشورات ببطاقات كاملة
-            featured.forEach(item => {
-                const date = new Date(item.created_at).toLocaleDateString('ar-IQ');
-                featuredContainer.innerHTML += `
-                    <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 flex flex-col">
-                        <img src="${item.image_url}" alt="صورة الخبر" class="h-48 w-full object-cover">
-                        <div class="p-4 flex flex-col flex-grow">
-                            <h3 class="font-bold text-lg mb-2 text-primary">${item.title}</h3>
-                            <p class="text-gray-600 text-sm mb-4 flex-grow">${item.description}</p>
-                            ${item.source_url ? `<a href="${item.source_url}" target="_blank" class="text-accent text-sm font-semibold mb-3 hover:underline"><i class="fa-solid fa-link ml-1"></i>المصدر</a>` : ''}
-                            <div class="flex justify-between items-center text-gray-400 text-xs border-t pt-3 mt-auto">
-                                <span><i class="fa-regular fa-clock ml-1"></i>${date}</span>
-                                <div class="space-x-3 space-x-reverse">
-                                    <button onclick="incrementViews(${item.id})" class="hover:text-primary"><i class="fa-regular fa-eye ml-1"></i>${item.views || 0}</button>
-                                    <button onclick="incrementLikes(${item.id})" class="text-red-500 hover:opacity-80"><i class="fa-regular fa-heart ml-1"></i>${item.likes || 0}</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            // عرض الباقي كرؤوس أقلام (أرشيف)
-            if (archive.length === 0) {
-                archiveContainer.innerHTML = `<li class="text-gray-400">لا توجد عناصر أخرى في الأرشيف</li>`;
-            } else {
-                archive.forEach(item => {
-                    archiveContainer.innerHTML += `
-                        <li class="flex justify-between items-center border-b pb-1">
-                            <span class="font-medium text-gray-700">• ${item.title}</span>
-                            <span class="text-xs text-gray-400">${new Date(item.created_at).toLocaleDateString('ar-IQ')}</span>
-                        </li>
-                    `;
-                });
-            }
-        }
+        
 
         // تفاعلات اللايك والمشاهدات
         async function incrementViews(id) {
