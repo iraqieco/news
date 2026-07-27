@@ -107,10 +107,26 @@ async function incrementViews(id) {
 }
 
 async function incrementLikes(id) {
+    const likedKey = `liked_${id}`;
+    
+    // التحقق مما إذا كان المستخدم قد أُعجب بهذا المنشور مسبقاً
+    if (localStorage.getItem(likedKey)) {
+        alert('لقد قمت الإعجاب بهذا المنشور مسبقاً!');
+        return;
+    }
+
     const { data } = await _supabase.from('news').select('likes').eq('id', id).single();
-    await _supabase.from('news').update({ likes: (data.likes || 0) + 1 }).eq('id', id);
-    fetchNews();
+    const newLikes = (data.likes || 0) + 1;
+    
+    const { error } = await _supabase.from('news').update({ likes: newLikes }).eq('id', id);
+    
+    if (!error) {
+        // حفظ حالة الإعجاب في المتصفح لكي لا يضغط مرة أخرى
+        localStorage.setItem(likedKey, 'true');
+        fetchNews();
+    }
 }
+
 
 function toggleAuthModal() {
     const modal = document.getElementById('admin-modal');
