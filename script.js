@@ -40,17 +40,18 @@ function renderSection(category, items) {
         const cardId = `card-${item.id}`;
         const menuId = `menu-${item.id}`;
         
+        const safeItemData = encodeURIComponent(JSON.stringify(item));
+        
         featuredContainer.innerHTML += `
             <div id="${cardId}" data-id="${item.id}" class="news-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 flex flex-col relative">
                 
-                <!-- زر الثلاث نقاط الخاص بالتحكم (يظهر للمسؤول فقط) -->
                 <div class="absolute top-2 left-2 z-10 auth-action-menu hidden">
                     <div class="relative">
                         <button onclick="toggleCardMenu('${menuId}')" class="bg-black bg-opacity-60 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-opacity-80 transition">
                             <i class="fa-solid fa-ellipsis-vertical"></i>
                         </button>
                         <div id="${menuId}" class="absolute left-0 mt-1 w-28 bg-white rounded-md shadow-lg border hidden py-1 z-20">
-                            <button onclick="editNews(${item.id}, '${escapeHtml(item.title)}', '${escapeHtml(item.description)}', '${item.image_url}', '${item.source_url || ''}', '${item.category}')" class="w-full text-right px-4 py-1.5 text-xs text-blue-600 hover:bg-gray-100 flex items-center"><i class="fa-solid fa-pen ml-1.5"></i>تعديل</button>
+                            <button onclick="editNewsByData('${safeItemData}')" class="w-full text-right px-4 py-1.5 text-xs text-blue-600 hover:bg-gray-100 flex items-center"><i class="fa-solid fa-pen ml-1.5"></i>تعديل</button>
                             <button onclick="deleteNews(${item.id})" class="w-full text-right px-4 py-1.5 text-xs text-red-600 hover:bg-gray-100 flex items-center"><i class="fa-solid fa-trash ml-1.5"></i>حذف</button>
                         </div>
                     </div>
@@ -88,7 +89,7 @@ function renderSection(category, items) {
             }
         });
         setupViewObserver();
-        checkUser(); // تطبيق الصلاحيات على العناصر الجديدة
+        checkUser();
     }, 50);
 
     if (archive.length === 0) {
@@ -105,7 +106,6 @@ function renderSection(category, items) {
     }
 }
 
-// التحكم بقائمة الثلاث نقاط لكل بطاقة
 function toggleCardMenu(menuId) {
     const menu = document.getElementById(menuId);
     document.querySelectorAll('[id^="menu-"]').forEach(m => {
@@ -114,8 +114,18 @@ function toggleCardMenu(menuId) {
     menu.classList.toggle('hidden');
 }
 
-function escapeHtml(text) {
-    return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+function editNewsByData(encodedItem) {
+    const item = JSON.parse(decodeURIComponent(encodedItem));
+    
+    document.getElementById('news-id').value = item.id;
+    document.getElementById('news-title').value = item.title;
+    document.getElementById('news-desc').value = item.description;
+    document.getElementById('news-image').value = item.image_url;
+    document.getElementById('news-source').value = item.source_url || '';
+    document.getElementById('news-category').value = item.category;
+    
+    const modal = document.getElementById('admin-modal');
+    if (modal) modal.classList.remove('hidden');
 }
 
 function toggleDescription(descId, btnId) {
@@ -131,7 +141,6 @@ function toggleDescription(descId, btnId) {
     }
 }
 
-// مراقبة ظهور المنشور على الشاشة لاحتساب المشاهدة مرة واحدة
 function setupViewObserver() {
     const observer = new IntersectionObserver((entries, observerInstance) => {
         entries.forEach(entry => {
@@ -252,29 +261,17 @@ function renderAdminList(items) {
     if (!list) return;
     list.innerHTML = '';
     items.forEach(item => {
+        const safeItemData = encodeURIComponent(JSON.stringify(item));
         list.innerHTML += `
             <div class="flex justify-between items-center bg-white p-2 rounded border text-sm">
                 <span class="truncate max-w-[200px]">${item.title}</span>
                 <div class="space-x-2 space-x-reverse">
-                    <button onclick="editNews(${item.id}, '${escapeHtml(item.title)}', '${escapeHtml(item.description)}', '${item.image_url}', '${item.source_url || ''}', '${item.category}'); toggleAuthModal();" class="text-blue-600">تعديل</button>
+                    <button onclick="editNewsByData('${safeItemData}')" class="text-blue-600">تعديل</button>
                     <button onclick="deleteNews(${item.id})" class="text-red-600">حذف</button>
                 </div>
             </div>
         `;
     });
-}
-
-function editNews(id, title, desc, img, src, cat) {
-    document.getElementById('news-id').value = id;
-    document.getElementById('news-title').value = title;
-    document.getElementById('news-desc').value = desc;
-    document.getElementById('news-image').value = img;
-    document.getElementById('news-source').value = src;
-    document.getElementById('news-category').value = cat;
-    
-    // إظهار نافذة لوحة التحكم لكي يرى المستخدم النموذج مفتوحاً للتعديل
-    const modal = document.getElementById('admin-modal');
-    if (modal) modal.classList.remove('hidden');
 }
 
 async function deleteNews(id) {
