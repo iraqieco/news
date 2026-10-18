@@ -92,7 +92,7 @@ function renderSection(category, items) {
         checkUser();
     }, 50);
 
-        if (archive.length === 0) {
+    if (archive.length === 0) {
         archiveContainer.innerHTML = `<li class="text-gray-400">لا توجد عناصر أخرى في الأرشيف</li>`;
     } else {
         archive.forEach(item => {
@@ -105,7 +105,7 @@ function renderSection(category, items) {
             `;
         });
     }
-
+}
 
 function toggleCardMenu(menuId) {
     const menu = document.getElementById(menuId);
@@ -282,11 +282,11 @@ async function deleteNews(id) {
         else fetchNews();
     }
 }
+
 function openArchiveItem(encodedItem) {
     const item = JSON.parse(decodeURIComponent(encodedItem));
     const date = new Date(item.created_at).toLocaleDateString('ar-IQ');
     
-    // إنشاء أو استخدام نافذة منبثقة لعرض تفاصيل الخبر الأرشيفي
     let modal = document.getElementById('archive-detail-modal');
     if (!modal) {
         modal = document.createElement('div');
