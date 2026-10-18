@@ -92,19 +92,20 @@ function renderSection(category, items) {
         checkUser();
     }, 50);
 
-    if (archive.length === 0) {
+        if (archive.length === 0) {
         archiveContainer.innerHTML = `<li class="text-gray-400">لا توجد عناصر أخرى في الأرشيف</li>`;
     } else {
         archive.forEach(item => {
+            const safeItemData = encodeURIComponent(JSON.stringify(item));
             archiveContainer.innerHTML += `
-                <li class="flex justify-between items-center border-b pb-1">
-                    <span class="font-medium text-gray-700">• ${item.title}</span>
+                <li class="flex justify-between items-center border-b pb-1 hover:bg-gray-50 px-2 py-1 rounded cursor-pointer transition" onclick="openArchiveItem('${safeItemData}')">
+                    <span class="font-medium text-gray-700 hover:text-accent transition">• ${item.title}</span>
                     <span class="text-xs text-gray-400">${new Date(item.created_at).toLocaleDateString('ar-IQ')}</span>
                 </li>
             `;
         });
     }
-}
+
 
 function toggleCardMenu(menuId) {
     const menu = document.getElementById(menuId);
@@ -280,4 +281,35 @@ async function deleteNews(id) {
         if (error) alert(error.message);
         else fetchNews();
     }
+}
+function openArchiveItem(encodedItem) {
+    const item = JSON.parse(decodeURIComponent(encodedItem));
+    const date = new Date(item.created_at).toLocaleDateString('ar-IQ');
+    
+    // إنشاء أو استخدام نافذة منبثقة لعرض تفاصيل الخبر الأرشيفي
+    let modal = document.getElementById('archive-detail-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'archive-detail-modal';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 p-4';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="bg-white w-full max-w-lg rounded-xl shadow-lg p-6 overflow-y-auto max-h-[90vh] relative">
+            <button onclick="closeArchiveModal()" class="absolute top-4 left-4 text-gray-500 hover:text-red-500 text-xl font-bold"><i class="fa-solid fa-xmark"></i></button>
+            <span class="text-xs text-primary font-semibold bg-green-50 px-2 py-1 rounded">${item.category === 'local' ? 'أخبار محلية' : 'أخبار عالمية'}</span>
+            <h2 class="text-xl font-bold text-primary mt-3 mb-2">${item.title}</h2>
+            <div class="text-xs text-gray-400 mb-4"><i class="fa-regular fa-clock ml-1"></i>${date}</div>
+            ${item.image_url ? `<img src="${item.image_url}" alt="صورة الخبر" class="h-48 w-full object-cover rounded-lg mb-4">` : ''}
+            <p class="text-gray-600 text-sm leading-relaxed mb-6 whitespace-pre-line">${item.description}</p>
+            ${item.source_url ? `<a href="${item.source_url}" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg font-semibold hover:bg-opacity-90 transition mb-3"><i class="fa-solid fa-link ml-1"></i>رابط المصدر</a>` : ''}
+        </div>
+    `;
+    modal.classList.remove('hidden');
+}
+
+function closeArchiveModal() {
+    const modal = document.getElementById('archive-detail-modal');
+    if (modal) modal.classList.add('hidden');
 }
