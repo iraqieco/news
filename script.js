@@ -56,8 +56,8 @@ function renderSection(category, items) {
                         </div>
                     </div>
                 </div>
+<img src="${item.image_url}" alt="صورة الخبر" class="w-full max-h-64 object-contain bg-gray-100">
 
-                <img src="${item.image_url}" alt="صورة الخبر" class="h-48 w-full object-cover">
                 <div class="p-4 flex flex-col flex-grow">
                     <h3 class="font-bold text-lg mb-2 text-primary">${item.title}</h3>
                     
@@ -301,7 +301,8 @@ function openArchiveItem(encodedItem) {
             <span class="text-xs text-primary font-semibold bg-green-50 px-2 py-1 rounded">${item.category === 'local' ? 'أخبار محلية' : 'أخبار عالمية'}</span>
             <h2 class="text-xl font-bold text-primary mt-3 mb-2">${item.title}</h2>
             <div class="text-xs text-gray-400 mb-4"><i class="fa-regular fa-clock ml-1"></i>${date}</div>
-            ${item.image_url ? `<img src="${item.image_url}" alt="صورة الخبر" class="h-48 w-full object-cover rounded-lg mb-4">` : ''}
+            ${item.image_url ? `<img src="${item.image_url}" alt="صورة الخبر" class="w-full max-h-80 object-contain bg-gray-100 rounded-lg mb-4">` : ''}
+
             <p class="text-gray-600 text-sm leading-relaxed mb-6 whitespace-pre-line">${item.description}</p>
             ${item.source_url ? `<a href="${item.source_url}" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg font-semibold hover:bg-opacity-90 transition mb-3"><i class="fa-solid fa-link ml-1"></i>رابط المصدر</a>` : ''}
         </div>
